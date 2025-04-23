@@ -11,7 +11,7 @@ CORS(app)  # Разрешаем CORS для фронтенда
 def run_parser():
     try:
         # путь до скрипта
-        command = ["xvfb-run", "-a", "python3", "parser.py"]  # или main.py
+        command = ["xvfb-run", "-a", "python3", "run.py"]  # или main.py
 
         # запускаем как подпроцесс
         result = subprocess.run(command, capture_output=True, text=True, timeout=300)
