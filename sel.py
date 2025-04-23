@@ -24,7 +24,7 @@ today = datetime.today()
 
 
 def subtract_one_month(date):
-    return date - timedelta(days=30)
+    return date - timedelta(days=29)
 
 
 date_to = today.strftime("%d.%m.%Y")

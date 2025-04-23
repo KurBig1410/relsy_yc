@@ -1,8 +1,22 @@
 import requests
 import json
+from datetime import datetime, timedelta
+
+
+# Получаем сегодняшнюю дату
+today = datetime.today()
+
+
+def subtract_one_month(date):
+    return date - timedelta(days=29)
+
+
+date_to = today.strftime("%d.%m.%Y")
+date_from = subtract_one_month(today).strftime("%d.%m.%Y")
+
 
 def getjson():
-    url = "https://yclients.com/group_analytics/filial/search/127929/?date_from=16.03.2025&date_to=16.04.2025"
+    url = f"https://yclients.com/group_analytics/filial/search/127929/?date_from={date_from}&date_to={date_to}"
     # Загружаем куки из cookies.json
     with open("data/cookies.json", "r") as f:
         raw_cookies = json.load(f)
@@ -16,13 +30,12 @@ def getjson():
         "X-Yclients-Application-Name": "biz.erp.web",
         "X-Yclients-Application-Platform": "legacy JS-1.0",
         "X-Yclients-Application-Version": "1.0.0",
-        "Referer": "https://yclients.com/group_analytics/filial/127929/?date_from=16.03.2025&date_to=16.04.2025",
+        "Referer": f"https://yclients.com/group_analytics/filial/search/127929/?date_from={date_from}&date_to={date_to}",
     }
 
     # Устанавливаем куки в сессию
     for cookie in raw_cookies:
         session.cookies.set(cookie["name"], cookie["value"])
-
 
     response = session.get(url, headers=headers)
     content_type = response.headers.get("Content-Type", "")
