@@ -16,12 +16,15 @@ load_dotenv()
 
 login = os.getenv("LOGIN")
 password = os.getenv("PASS")
+today = datetime.today()
+date_to = today.strftime("%d.%m.%Y")
+date_from = (today - timedelta(days=29)).strftime("%d.%m.%Y")
+
 
 def get_date_range():
-    today = datetime.today()
-    date_to = today.strftime("%d.%m.%Y")
-    date_from = (today - timedelta(days=29)).strftime("%d.%m.%Y")
+
     return date_from, date_to
+
 
 def authorize_user():
     options = webdriver.ChromeOptions()
@@ -30,10 +33,16 @@ def authorize_user():
     date_from, date_to = get_date_range()
 
     try:
-        driver.get(f"https://yclients.com/group_analytics/filial/search/127929/?date_from={date_from}&date_to={date_to}")
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "email")))
+        driver.get(
+            f"https://yclients.com/group_analytics/filial/search/127929/?date_from={date_from}&date_to={date_to}"
+        )
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.NAME, "email"))
+        )
         driver.find_element(By.NAME, "email").send_keys(login)
-        driver.find_element(By.CSS_SELECTOR, "input[type='password']").send_keys(password)
+        driver.find_element(By.CSS_SELECTOR, "input[type='password']").send_keys(
+            password
+        )
         driver.find_element(By.CSS_SELECTOR, "form button[type='submit']").click()
         time.sleep(5)
         cookies = driver.get_cookies()
@@ -45,10 +54,11 @@ def authorize_user():
     finally:
         driver.quit()
 
+
 def fetch_statistics_json():
     date_from, date_to = get_date_range()
     url = f"https://yclients.com/group_analytics/filial/search/127929/?date_from={date_from}&date_to={date_to}"
-    
+
     with open("data/cookies.json", "r") as f:
         raw_cookies = json.load(f)
 
@@ -90,6 +100,7 @@ def fetch_statistics_json():
         print("❌ Ошибка запроса:", response.status_code)
         print(response.text)
 
+
 def convert_json_to_csv():
     with open("data/response.json", "r", encoding="utf-8") as f:
         raw = json.load(f)
@@ -99,12 +110,15 @@ def convert_json_to_csv():
     headers = [th.get_text(strip=True) for th in table.find_all("th")]
     rows = []
     for tr in table.find("tbody").find_all("tr"):
-        cells = [td.get_text(strip=True).replace("\xa0", " ") for td in tr.find_all("td")]
+        cells = [
+            td.get_text(strip=True).replace("\xa0", " ") for td in tr.find_all("td")
+        ]
         if cells:
             rows.append(cells)
     df = pd.DataFrame(rows, columns=headers)
     df.to_csv("data/filial_stats.csv", index=False, encoding="utf-8-sig")
     print("✅ CSV сохранён в: data/filial_stats.csv")
+
 
 def convert_html_to_json():
     with open("data/response.json", "r", encoding="utf-8") as f:
@@ -112,23 +126,31 @@ def convert_html_to_json():
         html = raw_json["content"]
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table")
-    headers = [th.get_text(strip=True) for th in table.find_all("thead")[0].find_all("th")]
+    headers = [
+        th.get_text(strip=True) for th in table.find_all("thead")[0].find_all("th")
+    ]
     data = []
     for row in table.find_all("tbody")[0].find_all("tr"):
         cols = row.find_all("td")
         if not cols:
             continue
-        cleaned = [re.sub(r"\s+", " ", col.get_text(strip=True)).strip() for col in cols]
+        cleaned = [
+            re.sub(r"\s+", " ", col.get_text(strip=True)).strip() for col in cols
+        ]
         data.append(cleaned)
     df = pd.DataFrame(data, columns=headers)
     df.to_json("data/response_out.json", orient="records", force_ascii=False, indent=2)
     print("✅ JSON сохранён в: data/response_out.json")
+
 
 def run_pipeline():
     authorize_user()
     fetch_statistics_json()
     convert_json_to_csv()
     convert_html_to_json()
+    print(f'Дата начала{date_to}')
+    print(f'Дата окончания{date_from}')
+
 
 if __name__ == "__main__":
     run_pipeline()

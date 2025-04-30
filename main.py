@@ -1,56 +1,62 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
-import json
-from run import run_pipeline
-import subprocess
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import asyncio
+import subprocess
+import json
 
 from data_base.engine import create_db
+from data_base.crud.filial_crud import get_all_filials, clear_filial_table
+
+app = FastAPI()
+
+# Разрешаем CORS для фронтенда
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("startup")
+async def startup_event():
+    await create_db()
+
+@app.get("/api/ping")
+async def ping():
+    return {"status": "ok"}
 
 
-app = Flask(__name__)
-CORS(app)  # Разрешаем CORS для фронтенда
+@app.get("/api/del_filials")
+async def del_filials():
+    await clear_filial_table()
+    return {"status": "ok"}
 
 
-@app.route("/api/run", methods=["GET"])
-def run_parser():
+@app.get("/api/data")
+async def get_data():
+    filials = await get_all_filials()
+    result = [filial.dict() for filial in filials]
+    return JSONResponse(content=result)
+
+@app.get("/api/run")
+async def run_parser():
     try:
-        # путь до скрипта
-        command = ["xvfb-run", "-a", "python3", "run.py"]  # или main.py
+        command = ["xvfb-run", "-a", "python3", "run.py"]
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
 
-        # запускаем как подпроцесс
-        result = subprocess.run(command, capture_output=True, text=True, timeout=300)
-
-        if result.returncode == 0:
-            return jsonify({"status": "success", "output": result.stdout})
+        if process.returncode == 0:
+            return {"status": "success", "output": stdout.decode()}
         else:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "code": result.returncode,
-                        "stderr": result.stderr,
-                    }
-                ),
-                500,
-            )
-
+            raise HTTPException(status_code=500, detail=stderr.decode())
     except Exception as e:
-        return jsonify({"status": "failed", "error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/ping")
-def ping():
-    return jsonify({"status": "ok"})
 
-
-@app.route("/api/data", methods=["GET"])
-def get_data():
-    with open("data/response_out.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return jsonify(data)
-
-
-if __name__ == "__main__":
-    asyncio.run(create_db())  # создаём БД
-    app.run(host="0.0.0.0", port=5000, debug=True)

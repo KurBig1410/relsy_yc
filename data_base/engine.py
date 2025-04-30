@@ -1,7 +1,8 @@
 import os
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from data_base.filial import Base
 from dotenv import load_dotenv
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Загрузка переменных окружения
 load_dotenv()

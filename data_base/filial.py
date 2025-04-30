@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field  # noqa: F401
+from sqlmodel import SQLModel, Field
 from typing import Optional
 
 

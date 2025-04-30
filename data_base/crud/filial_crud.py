@@ -1,5 +1,5 @@
 # crud/filial_crud.py
-from sqlmodel import select
+from sqlmodel import select, delete
 from data_base.filial import Filial
 
 from data_base.engine import session_maker
@@ -74,4 +74,19 @@ async def delete_filials_by_owner(owner_name: str):
 async def get_all_filials():
     async with async_session() as session:
         result = await session.exec(select(Filial))
-        return result.all()
+        filials = result.all()
+        for filial in filials:
+            print(f"\n\n\n{filial.dict()}\n\n\n")
+        return filials
+
+
+async def get_filial_by_name(session, name: str):
+    result = await session.exec(select(Filial).where(Filial.name == name))
+    return result.first()
+
+
+async def clear_filial_table():
+    async with async_session() as session:
+        async with session.begin():
+            await session.exec(delete(Filial))
+        print("✅ Таблица filial очищена.")
