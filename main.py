@@ -10,6 +10,16 @@ from data_base.crud.filial_crud import get_all_filials, clear_filial_table
 
 app = FastAPI()
 
+ALLOWED_IDS = [841206937, 98765432]
+
+
+@app.get("/api/check_access")
+async def check_access(id: int):
+    if id in ALLOWED_IDS:
+        return {"allowed": True}
+    return {"allowed": False}
+
+
 # Разрешаем CORS для фронтенда
 app.add_middleware(
     CORSMiddleware,
@@ -19,9 +29,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup_event():
     await create_db()
+
 
 @app.get("/api/ping")
 async def ping():
@@ -40,14 +52,13 @@ async def get_data():
     result = [filial.dict() for filial in filials]
     return JSONResponse(content=result)
 
+
 @app.get("/api/run")
 async def run_parser():
     try:
         command = ["xvfb-run", "-a", "python3", "run.py"]
         process = await asyncio.create_subprocess_exec(
-            *command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
 
@@ -57,6 +68,3 @@ async def run_parser():
             raise HTTPException(status_code=500, detail=stderr.decode())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-
